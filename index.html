@@ -1559,16 +1559,9 @@
       if (!audio) return;
       if (audio.paused) {
         audio.volume = 0.4;
-        const tryPlay = () =>
-          audio.play()
-               .then(() => btn.classList.add('playing'))
-               .catch(err => console.warn('Music playback blocked:', err));
-        if (audio.readyState < 3) {
-          audio.load();
-          audio.addEventListener('canplay', tryPlay, { once: true });
-        } else {
-          tryPlay();
-        }
+        audio.play()
+             .then(() => btn.classList.add('playing'))
+             .catch(err => console.warn('Music playback blocked:', err));
       } else {
         audio.pause();
         btn.classList.remove('playing');
