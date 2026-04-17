@@ -918,9 +918,8 @@
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
       overflow: hidden; cursor: pointer;
-      transition: transform 0.9s cubic-bezier(0.4,0,0.2,1), opacity 0.6s ease;
+      /* transition controlled via JS for swipe-to-dismiss */
     }
-    #welcome.hide { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 
     /* Background petals inside welcome */
     .w-petals { position: absolute; inset: 0; pointer-events: none; }
@@ -979,32 +978,47 @@
       text-align: center; max-width: 340px; line-height: 1.8;
     }
 
-    /* Swipe-up / tap hint */
-    .w-swipe {
+    /* Tap-to-reveal hint */
+    .w-tap {
       position: absolute; bottom: 44px; left: 50%;
       transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
       pointer-events: none;
     }
-    .w-arr {
-      opacity: 0;
-      animation: arrRise 1.8s ease-in-out infinite;
+    .w-tap-ring {
+      width: 58px; height: 58px; border-radius: 50%;
+      border: 1px solid rgba(201,168,76,0.45);
+      display: flex; align-items: center; justify-content: center;
+      animation: tapRingPulse 2.2s ease-in-out infinite;
     }
-    .w-arr:nth-child(1) { animation-delay: 0.4s; }
-    .w-arr:nth-child(2) { animation-delay: 0.2s; }
-    .w-arr:nth-child(3) { animation-delay: 0s;   }
-    @keyframes arrRise {
-      0%   { opacity: 0;   transform: translateY(6px); }
-      35%  { opacity: 0.9; }
-      75%  { opacity: 0.2; transform: translateY(-4px); }
-      100% { opacity: 0;   transform: translateY(-4px); }
+    .w-tap-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--gold);
+      animation: tapDotPulse 2.2s ease-in-out infinite;
     }
-    .w-swipe-label {
-      margin-top: 10px;
-      font-size: 0.55rem; letter-spacing: 5px; text-transform: uppercase;
-      color: rgba(201,168,76,0.38); font-family: 'Raleway', sans-serif;
+    @keyframes tapRingPulse {
+      0%,100% { transform: scale(1);   box-shadow: 0 0 0 0   rgba(201,168,76,0.35); }
+      50%      { transform: scale(1.1); box-shadow: 0 0 0 14px rgba(201,168,76,0); }
+    }
+    @keyframes tapDotPulse {
+      0%,100% { transform: scale(1);   opacity: 0.65; }
+      50%      { transform: scale(1.4); opacity: 1; }
+    }
+    .w-tap-label {
+      font-size: 0.54rem; letter-spacing: 5px; text-transform: uppercase;
+      color: rgba(201,168,76,0.35); font-family: 'Raleway', sans-serif;
       white-space: nowrap;
     }
+
+    /* Golden ripple on tap */
+    .w-ripple-el {
+      position: absolute; border-radius: 50%;
+      width: 80px; height: 80px; margin: -40px 0 0 -40px;
+      background: rgba(201,168,76,0.28);
+      transform: scale(0); pointer-events: none; z-index: 10;
+      animation: wRipple 0.85s cubic-bezier(0.2,0.6,0.4,1) forwards;
+    }
+    @keyframes wRipple { to { transform: scale(28); opacity: 0; } }
 
     /* =============================================
        FOOTER
@@ -1183,18 +1197,10 @@
     </div>
     <p class="welcome-note">You are warmly invited to share in the joy of our wedding celebration.</p>
 
-    <!-- Swipe up / tap hint -->
-    <div class="w-swipe" aria-hidden="true">
-      <svg class="w-arr" width="22" height="13" viewBox="0 0 22 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 12 L11 1 L21 12" stroke="rgba(201,168,76,0.75)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <svg class="w-arr" width="22" height="13" viewBox="0 0 22 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 12 L11 1 L21 12" stroke="rgba(201,168,76,0.75)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <svg class="w-arr" width="22" height="13" viewBox="0 0 22 13" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M1 12 L11 1 L21 12" stroke="rgba(201,168,76,0.75)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p class="w-swipe-label">Swipe up &nbsp;·&nbsp; Tap to enter</p>
+    <!-- Tap to reveal hint -->
+    <div class="w-tap" aria-hidden="true">
+      <div class="w-tap-ring"><div class="w-tap-dot"></div></div>
+      <p class="w-tap-label">Tap anywhere to begin</p>
     </div>
   </div>
 
@@ -1676,21 +1682,41 @@
 
     window.enterSite = function() {
       const w = document.getElementById('welcome');
-      if (!w || w.classList.contains('hide')) return;
-      w.classList.add('hide');
-      setTimeout(() => { w.style.display = 'none'; }, 950);
-      startMusic();
+      if (!w || w._exiting) return;
+      w._exiting = true;
+      w.style.pointerEvents = 'none';
+      // Fade out after ripple has expanded (~350ms)
+      setTimeout(() => {
+        w.style.transition = 'opacity 0.55s ease';
+        w.style.opacity    = '0';
+        setTimeout(() => { w.style.display = 'none'; }, 580);
+      }, 320);
     };
 
-    /* Swipe up or tap anywhere on the welcome overlay */
+    /* Tap-to-reveal — golden ripple from touch/click point */
     (function() {
       const w = document.getElementById('welcome');
       if (!w) return;
-      // Call enterSite() directly from touchend — iOS Safari recognises
-      // touchend as a user gesture, so audio.play() is allowed immediately.
-      // The enterSite() guard prevents double-firing when click follows.
-      w.addEventListener('touchend', () => enterSite(), { passive: true });
-      w.addEventListener('click',    () => enterSite());
+
+      function triggerReveal(x, y) {
+        if (w._exiting) return;
+        // Ripple element
+        const r = document.createElement('div');
+        r.className  = 'w-ripple-el';
+        r.style.left = x + 'px';
+        r.style.top  = y + 'px';
+        w.appendChild(r);
+        // Start music immediately — still inside gesture context
+        startMusic();
+        enterSite();
+      }
+
+      w.addEventListener('touchend', e => {
+        const t = e.changedTouches[0];
+        triggerReveal(t.clientX, t.clientY);
+      }, { passive: true });
+
+      w.addEventListener('click', e => triggerReveal(e.clientX, e.clientY));
     })();
 
     /* ---- Nav scroll ---- */
@@ -1779,15 +1805,6 @@
     };
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-    /* ---- Pause music when tab is hidden / closed ---- */
-    document.addEventListener('visibilitychange', () => {
-      const audio = document.getElementById('bgMusic');
-      const btn   = document.getElementById('musicBtn');
-      if (document.hidden && audio && !audio.paused) {
-        audio.pause();
-        btn.classList.remove('playing');
-      }
-    });
 
     /* ---- Boot ---- */
     document.addEventListener('DOMContentLoaded', () => {
