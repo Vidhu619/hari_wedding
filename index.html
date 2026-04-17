@@ -910,6 +910,70 @@
     }
 
     /* =============================================
+       WELCOME OVERLAY
+    ============================================= */
+    #welcome {
+      position: fixed; inset: 0; z-index: 9998;
+      background: #080808;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0;
+      transition: opacity 1s ease;
+    }
+    #welcome.hide { opacity: 0; pointer-events: none; }
+
+    .welcome-date {
+      font-size: 0.6rem; letter-spacing: 6px; text-transform: uppercase;
+      color: rgba(201,168,76,0.5); margin-bottom: 28px;
+      font-family: 'Raleway', sans-serif;
+    }
+    .welcome-names {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(3.5rem, 10vw, 7rem);
+      font-weight: 300; color: var(--white);
+      line-height: 0.92; letter-spacing: -1px;
+      text-align: center;
+    }
+    .welcome-names .amp {
+      display: block; color: var(--gold);
+      font-style: italic; font-size: 0.55em;
+      font-weight: 400; line-height: 1.3;
+    }
+    .welcome-divider {
+      display: flex; align-items: center; gap: 14px;
+      margin: 32px 0 28px;
+    }
+    .welcome-divider .wline   { width: 48px; height: 1px; background: rgba(201,168,76,0.4); }
+    .welcome-divider .wdiamond { width: 6px; height: 6px; background: var(--gold); transform: rotate(45deg); }
+    .welcome-note {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(1rem, 2.2vw, 1.3rem);
+      font-style: italic; color: rgba(232,213,163,0.55);
+      text-align: center; max-width: 340px; line-height: 1.8;
+      margin-bottom: 52px;
+    }
+    .welcome-enter {
+      display: inline-flex; align-items: center; gap: 12px;
+      padding: 14px 42px;
+      border: 1px solid var(--gold); color: var(--gold);
+      font-family: 'Raleway', sans-serif;
+      font-size: 0.7rem; letter-spacing: 5px; text-transform: uppercase;
+      font-weight: 500; background: transparent;
+      cursor: pointer; transition: background 0.35s, color 0.35s;
+      animation: enterPulse 2.5s ease-in-out infinite;
+    }
+    .welcome-enter:hover { background: var(--gold); color: #0a0a0a; animation: none; }
+    @keyframes enterPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+      50%      { box-shadow: 0 0 0 10px rgba(201,168,76,0); }
+    }
+    .welcome-music-hint {
+      margin-top: 20px; font-size: 0.58rem; letter-spacing: 3px;
+      text-transform: uppercase; color: rgba(255,255,255,0.2);
+      font-family: 'Raleway', sans-serif;
+    }
+
+    /* =============================================
        FOOTER
     ============================================= */
     footer { background: #080808; padding: 38px 24px; text-align: center; }
@@ -1008,6 +1072,24 @@
       .hamburger { display: flex; }
       .gallery-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 170px; }
       .gallery-item.w2, .gallery-item.w3 { grid-column: span 2; }
+
+      /* Allow animations to float out of their section vertically so they
+         aren't clipped immediately on short mobile screens */
+      .petals-wrap, .hearts-wrap, .events-floats, .venue-orbs, .sparkles-wrap {
+        overflow: visible;
+      }
+      /* Keep horizontal overflow contained at the section level */
+      #hero, #about, #events, #venue, #contact { overflow-x: hidden; }
+
+      /* Boost opacity — subtle values are hard to see on mobile screens */
+      .petal           { background: rgba(201,168,76,0.72); }
+      .heart           { color: rgba(201,168,76,0.62); }
+      .ev-float.petal,
+      .venue-float.petal { background: rgba(201,168,76,0.72); }
+      .ev-float.diamond,
+      .venue-float.diamond { background: rgba(201,168,76,0.55); }
+      .venue-orb       { border-color: rgba(201,168,76,0.65); opacity: 0.9; }
+      .sparkle         { color: var(--gold); }
     }
     @media (max-width: 480px) {
       section { padding: 64px 16px; }
@@ -1036,6 +1118,26 @@
     </div>
     <p class="loader-label">We're getting married</p>
     <div class="loader-bar"></div>
+  </div>
+
+  <!-- ================================================
+       WELCOME OVERLAY
+  ================================================ -->
+  <div id="welcome">
+    <p class="welcome-date">May 10, 2026 &nbsp;·&nbsp; Varkala, Kerala</p>
+    <h2 class="welcome-names">
+      Hari<br/>
+      <span class="amp">&amp;</span>
+      <br/>Geethu
+    </h2>
+    <div class="welcome-divider">
+      <div class="wline"></div><div class="wdiamond"></div><div class="wline"></div>
+    </div>
+    <p class="welcome-note">You are warmly invited to share in the joy of our wedding celebration.</p>
+    <button class="welcome-enter" onclick="enterSite()">
+      ♪ &nbsp; Enter
+    </button>
+    <!-- <p class="welcome-music-hint">Music will begin on entry</p> -->
   </div>
 
   <!-- ================================================
@@ -1467,7 +1569,7 @@
   ================================================ -->
   <!-- ✏️ Add your music file as music.mp3 in this folder -->
   <audio id="bgMusic" loop preload="auto" playsinline>
-    <source src="music.mp3" type="audio/mpeg">
+    <source src="hari.mp3" type="audio/mpeg">
   </audio>
 
   <div class="music-btn" id="musicBtn" onclick="toggleMusic()" title="Toggle music">
@@ -1509,8 +1611,20 @@
       const loader = document.getElementById('loader');
       if (!loader) return;
       loader.classList.add('hide');
-      setTimeout(() => { loader.style.display = 'none'; }, 1050);
+      setTimeout(() => {
+        loader.style.display = 'none';
+      }, 1050);
     }
+
+    window.enterSite = function() {
+      const w = document.getElementById('welcome');
+      if (w) {
+        w.classList.remove('visible');
+        w.classList.add('hide');
+        setTimeout(() => { w.style.display = 'none'; }, 1050);
+      }
+      startMusic();
+    };
 
     /* ---- Nav scroll ---- */
     function handleScroll() {
@@ -1552,16 +1666,24 @@
       setTimeout(() => els.forEach(el => el.classList.add('visible')), 900);
     }
 
-    /* ---- Music toggle ---- */
+    /* ---- Music helpers ---- */
+    function startMusic() {
+      const audio = document.getElementById('bgMusic');
+      const btn   = document.getElementById('musicBtn');
+      if (!audio || !audio.paused) return;
+      audio.volume = 0.4;
+      audio.play()
+           .then(() => btn.classList.add('playing'))
+           .catch(err => console.warn('Music playback blocked:', err));
+    }
+
+    /* ---- Music toggle (button) ---- */
     window.toggleMusic = function() {
       const audio = document.getElementById('bgMusic');
       const btn   = document.getElementById('musicBtn');
       if (!audio) return;
       if (audio.paused) {
-        audio.volume = 0.4;
-        audio.play()
-             .then(() => btn.classList.add('playing'))
-             .catch(err => console.warn('Music playback blocked:', err));
+        startMusic();
       } else {
         audio.pause();
         btn.classList.remove('playing');
